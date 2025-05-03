@@ -85,6 +85,23 @@ def motion_capture():
 def index():
     return render_template("index.html")
 
+@app.route("/original_stream")
+def original_stream():
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            # Aquí no procesamos, solo enviamos el frame original
+            (flag, encodedImage) = cv2.imencode(".jpg", frame)
+            if not flag:
+                continue
+
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
 @app.route("/motion_stream")
 def motion_stream():
     return Response(motion_capture(),
