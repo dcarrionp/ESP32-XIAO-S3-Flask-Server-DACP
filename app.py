@@ -102,6 +102,29 @@ def original_stream():
 
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
+@app.route("/clahe_stream")
+def clahe_stream():
+    def generate():
+        # Crear el objeto CLAHE
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            enhanced = clahe.apply(gray)
+
+            (flag, encodedImage) = cv2.imencode(".jpg", enhanced)
+            if not flag:
+                continue
+
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
 @app.route("/motion_stream")
 def motion_stream():
     return Response(motion_capture(),
