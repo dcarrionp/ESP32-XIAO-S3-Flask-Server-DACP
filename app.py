@@ -167,6 +167,28 @@ def stream_xor():
         if encoded:
             yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
 
+# ========== FUNCIONES DE RUIDO ==========
+
+def add_gaussian_noise(image, mean=0, std=20):
+    """Agrega ruido gaussiano a una imagen en escala de grises."""
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    row, col = image.shape
+    gauss = np.random.normal(mean, std, (row, col)).astype('uint8')
+    noisy = cv2.add(image, gauss)
+    return noisy
+
+def add_speckle_noise(image, var=0.04):
+    """Agrega ruido speckle a una imagen en escala de grises."""
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    row, col = image.shape
+    noise = np.random.randn(row, col) * var
+    noisy = image + image * noise
+    noisy = np.clip(noisy, 0, 255).astype('uint8')
+    return noisy
+
+
 # ========== RUTAS FLASK ==========
 @app.route("/")
 def index():
@@ -207,6 +229,39 @@ def or_stream():
 @app.route("/xor_stream")
 def xor_stream():
     return Response(stream_xor(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/gaussian_noise_stream")
+def gaussian_noise_stream():
+    """Streaming con ruido gaussiano agregado."""
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            noisy_frame = add_gaussian_noise(frame)
+            encoded = encode_frame(noisy_frame)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/speckle_noise_stream")
+def speckle_noise_stream():
+    """Streaming con ruido speckle agregado."""
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            noisy_frame = add_speckle_noise(frame)
+            encoded = encode_frame(noisy_frame)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
 
 # ========== MAIN ==========
 if __name__ == "__main__":

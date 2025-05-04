@@ -2,58 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ESP32-S3 Flask Server</title>
+    <title>ESP32-S3 Streaming Flask</title>
     <style>
         body {
             background-color: #f1f1bc;
             font-family: Arial, sans-serif;
             text-align: center;
+            padding-top: 20px;
         }
         h1 {
+            margin-bottom: 10px;
+        }
+        .button-container {
             margin-top: 20px;
         }
-        .buttons {
-            margin: 20px;
-        }
-        button {
-            margin: 5px;
-            padding: 10px 20px;
+        .stream-button {
+            padding: 12px 20px;
+            margin: 10px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
             font-size: 16px;
+            border-radius: 8px;
             cursor: pointer;
         }
-        #video-container {
-            margin-top: 20px;
-        }
-        img {
-            width: 80%;
-            border: 2px solid black;
+        .stream-button:hover {
+            background-color: #45a049;
         }
     </style>
-    <script>
-        function changeStream(route) {
-            const video = document.getElementById('video');
-            video.src = route;
-        }
-    </script>
 </head>
 <body>
-    <h1>ESP32-S3 Streams</h1>
+    <h1>ESP32-S3 CAM - Streaming Flask Server</h1>
 
-    <div class="buttons">
-        <button onclick="changeStream('{{ url_for('original_stream') }}')">Original</button>
-        <button onclick="changeStream('{{ url_for('motion_stream') }}')">Motion Detection</button>
-        <button onclick="changeStream('{{ url_for('clahe_stream') }}')">CLAHE</button>
-        <button onclick="changeStream('{{ url_for('equalized_stream') }}')">Histogram Equalization</button>
-        <button onclick="changeStream('{{ url_for('gamma_stream') }}')">Gamma Correction</button>
-        <button onclick="changeStream('{{ url_for('mask_stream') }}')">Mask Only</button>
-        <button onclick="changeStream('{{ url_for('and_stream') }}')">AND Operation</button>
-        <button onclick="changeStream('{{ url_for('or_stream') }}')">OR Operation</button>
-        <button onclick="changeStream('{{ url_for('xor_stream') }}')">XOR Operation</button>
+    <div class="button-container">
+        <button class="stream-button" onclick="openStream('/original_stream')">📷 Stream Original</button>
+        <button class="stream-button" onclick="openStream('/motion_stream')">🚶‍♂️ Detección Movimiento</button>
+        <button class="stream-button" onclick="openStream('/mask_stream')">🛡️ Máscara de Movimiento</button>
+        <button class="stream-button" onclick="openStream('/clahe_stream')">✨ Mejora CLAHE</button>
+        <button class="stream-button" onclick="openStream('/equalized_stream')">📈 Ecualización Histograma</button>
+        <button class="stream-button" onclick="openStream('/gamma_stream')">🔆 Corrección Gamma</button>
+        <button class="stream-button" onclick="openStream('/and_stream')">⚙️ Operación AND</button>
+        <button class="stream-button" onclick="openStream('/or_stream')">⚡ Operación OR</button>
+        <button class="stream-button" onclick="openStream('/xor_stream')">❌ Operación XOR</button>
+        <button class="stream-button" onclick="openStream('/gaussian_noise_stream')">🌫️ Ruido Gaussiano</button>
+        <button class="stream-button" onclick="openStream('/speckle_noise_stream')">🎛️ Ruido Speckle</button>
     </div>
 
-    <div id="video-container">
-        <img id="video" src="" alt="Selecciona un stream para ver" />
-    </div>
+    <script>
+        function openStream(route) {
+            window.open(route, "_blank");
+        }
+    </script>
 </body>
 </html>
 
