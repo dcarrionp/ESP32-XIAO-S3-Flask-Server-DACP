@@ -1,57 +1,63 @@
-# Author: Diego Andrés Carrión Portilla (Versión Solo Movimiento)
-# Description: Flask + ESP32-S3, solo detección de movimiento adaptativa con FPS
+# Author: Diego Andrés Carrión Portilla (Optimized Version)
+# Description: Flask server for ESP32-S3-CAM with motion detection and multiple video streams.
 
 from flask import Flask, render_template, Response
 from io import BytesIO
-
 import cv2
 import numpy as np
 import requests
 import time
 
+# ========== CONFIGURACIÓN ==========
 app = Flask(__name__)
 
-# ========== CONFIGURACIÓN ==========
-_URL = 'http://192.168.18.248'  # Cambia por tu IP si es diferente
-_PORT = '81'
-_ST = '/stream'
-SEP = ':'
-stream_url = ''.join([_URL, SEP, _PORT, _ST])
+STREAM_IP = 'http://192.168.18.248'
+STREAM_PORT = '81'
+STREAM_ROUTE = '/stream'
+STREAM_URL = f"{STREAM_IP}:{STREAM_PORT}{STREAM_ROUTE}"
 
-# Substracción de fondo adaptativa
+DOWNSCALE_FACTOR = 0.5  # Reducción para mejor rendimiento
 fgbg = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=40, detectShadows=True)
 
-# Para calcular FPS
-last_time = time.time()
+last_time = time.time()  # Para FPS
 
-# Escala de imagen para mejorar rendimiento
-DOWNSCALE_FACTOR = 0.5
-
-# ========== FUNCIONES ==========
+# ========== FUNCIONES AUXILIARES ==========
 
 def get_frame():
-    """Captura un frame de la cámara."""
+    """Captura un frame desde el ESP32-S3 y lo reduce."""
     try:
-        res = requests.get(stream_url, stream=True, timeout=5)
+        res = requests.get(STREAM_URL, stream=True, timeout=5)
         for chunk in res.iter_content(chunk_size=100000):
             if len(chunk) > 100:
                 img_data = BytesIO(chunk)
                 frame = cv2.imdecode(np.frombuffer(img_data.read(), np.uint8), 1)
-                frame = cv2.resize(frame, (0, 0), fx=DOWNSCALE_FACTOR, fy=DOWNSCALE_FACTOR)
+                if frame is not None:
+                    frame = cv2.resize(frame, (0, 0), fx=DOWNSCALE_FACTOR, fy=DOWNSCALE_FACTOR)
                 return frame
     except Exception as e:
-        print(f"Error capturando frame: {e}")
+        print(f"[ERROR] Error capturando frame: {e}")
+        time.sleep(1)
     return None
 
 def encode_frame(frame):
-    """Codifica el frame para transmisión."""
-    (flag, encodedImage) = cv2.imencode(".jpg", frame)
-    if not flag:
-        return None
-    return bytearray(encodedImage)
+    """Codifica un frame en formato JPEG."""
+    success, encoded_image = cv2.imencode(".jpg", frame)
+    return bytearray(encoded_image) if success else None
 
-def motion_capture():
-    """Stream de detección de movimiento con Adaptive Background Subtraction."""
+# ========== FUNCIONES DE STREAM ==========
+
+def stream_original():
+    """Streaming del video original."""
+    while True:
+        frame = get_frame()
+        if frame is None:
+            continue
+        encoded = encode_frame(frame)
+        if encoded:
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+def stream_motion():
+    """Streaming con detección de movimiento (Adaptive Background Subtraction)."""
     global last_time
     while True:
         frame = get_frame()
@@ -61,14 +67,12 @@ def motion_capture():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         mask = fgbg.apply(gray)
 
-        # Dibujar rectángulos de movimiento
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for cnt in contours:
-            if cv2.contourArea(cnt) > 500:  # Ignorar ruidos pequeños
+            if cv2.contourArea(cnt) > 500:
                 x, y, w, h = cv2.boundingRect(cnt)
                 cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-        # Mostrar FPS
         now = time.time()
         fps = 1 / (now - last_time)
         last_time = now
@@ -77,9 +81,38 @@ def motion_capture():
 
         encoded = encode_frame(frame)
         if encoded:
-            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
 
-# ========== FLASK ROUTES ==========
+def stream_clahe():
+    """Streaming con mejora de iluminación (CLAHE)."""
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    while True:
+        frame = get_frame()
+        if frame is None:
+            continue
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        enhanced = clahe.apply(gray)
+
+        encoded = encode_frame(enhanced)
+        if encoded:
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+def stream_mask():
+    """Streaming solo de la máscara de movimiento."""
+    while True:
+        frame = get_frame()
+        if frame is None:
+            continue
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        mask = fgbg.apply(gray)
+
+        encoded = encode_frame(mask)
+        if encoded:
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+# ========== RUTAS FLASK ==========
 
 @app.route("/")
 def index():
@@ -87,67 +120,26 @@ def index():
 
 @app.route("/original_stream")
 def original_stream():
-    def generate():
-        while True:
-            frame = get_frame()
-            if frame is None:
-                continue
-
-            # Aquí no procesamos, solo enviamos el frame original
-            (flag, encodedImage) = cv2.imencode(".jpg", frame)
-            if not flag:
-                continue
-
-            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
-
-    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
-
-@app.route("/clahe_stream")
-def clahe_stream():
-    def generate():
-        # Crear el objeto CLAHE
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-
-        while True:
-            frame = get_frame()
-            if frame is None:
-                continue
-
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            enhanced = clahe.apply(gray)
-
-            (flag, encodedImage) = cv2.imencode(".jpg", enhanced)
-            if not flag:
-                continue
-
-            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
-
-    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
-
-@app.route("/mask_stream")
-def mask_stream():
-    def generate():
-        while True:
-            frame = get_frame()
-            if frame is None:
-                continue
-
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            mask = fgbg.apply(gray)  # Solo máscara, blanco y negro
-
-            (flag, encodedImage) = cv2.imencode(".jpg", mask)
-            if not flag:
-                continue
-
-            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
-
-    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+    return Response(stream_original(),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
 
 @app.route("/motion_stream")
 def motion_stream():
-    return Response(motion_capture(),
+    return Response(stream_motion(),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
 
+@app.route("/clahe_stream")
+def clahe_stream():
+    return Response(stream_clahe(),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/mask_stream")
+def mask_stream():
+    return Response(stream_mask(),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
+
+# ========== MAIN ==========
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=False, port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)
 
