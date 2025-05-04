@@ -46,10 +46,13 @@
       <img src="{{ url_for('original_stream') }}" style="width: 100%; max-width: 480px;">
     </div>
 
-    <div style="text-align: center;">
-      <h2>CLAHE (Mejora Contraste)</h2>
-      <img src="{{ url_for('clahe_stream') }}" style="width: 100%; max-width: 480px;">
-    </div>
+    <h2>Filtros de Mejora de Iluminación:</h2>
+<ul>
+    <li><a href="{{ url_for('clahe_stream') }}" target="_blank">CLAHE</a></li>
+    <li><a href="{{ url_for('equalized_stream') }}" target="_blank">Ecualización Tradicional</a></li>
+    <li><a href="{{ url_for('gamma_stream') }}" target="_blank">Corrección Gamma</a></li>
+</ul>
+
 
     <div style="text-align: center;">
       <h2>Máscara de Movimiento</h2>

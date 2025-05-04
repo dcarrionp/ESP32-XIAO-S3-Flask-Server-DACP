@@ -112,6 +112,47 @@ def stream_mask():
         if encoded:
             yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
 
+
+@app.route("/equalized_stream")
+def equalized_stream():
+    """ Stream aplicando ecualización tradicional de histograma """
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            equalized = cv2.equalizeHist(gray)
+
+            encoded = encode_frame(equalized)
+            if encoded:
+                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/gamma_stream")
+def gamma_stream():
+    """ Stream aplicando corrección Gamma """
+    def generate():
+        gamma = 1.5  # Ajusta si quieres (1.5 aclara, <1 oscurece)
+        invGamma = 1.0 / gamma
+        table = np.array([(i / 255.0) ** invGamma * 255 for i in np.arange(0, 256)]).astype("uint8")
+
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            adjusted = cv2.LUT(frame, table)
+
+            encoded = encode_frame(adjusted)
+            if encoded:
+                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+
 # ========== RUTAS FLASK ==========
 
 @app.route("/")
