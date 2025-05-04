@@ -2,64 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Detección de Movimiento ESP32-S3</title>
+    <title>ESP32-S3 Flask Server</title>
     <style>
         body {
             background-color: #f1f1bc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: start;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
             font-family: Arial, sans-serif;
+            text-align: center;
         }
         h1 {
-            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+        .buttons {
+            margin: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #video-container {
+            margin-top: 20px;
         }
         img {
-            max-width: 90%;
-            height: auto;
-            border: 2px solid #333;
-        }
-        .containerHeader{
-        	align-items: center;
+            width: 80%;
+            border: 2px solid black;
         }
     </style>
+    <script>
+        function changeStream(route) {
+            const video = document.getElementById('video');
+            video.src = route;
+        }
+    </script>
 </head>
-<body class="container">
-  <div class="containerHeader">
-    <h1>Diego Andres Carrion Portilla</h1>
-    <img src="{{ url_for('static', filename='Header.webp') }}" alt="Image header" width="50%">
-  </div>
+<body>
+    <h1>ESP32-S3 Streams</h1>
 
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
-    
-    <div style="text-align: center;">
-      <h2>Detección de Movimiento</h2>
-      <img src="{{ url_for('motion_stream') }}" style="width: 100%; max-width: 480px;">
+    <div class="buttons">
+        <button onclick="changeStream('{{ url_for('original_stream') }}')">Original</button>
+        <button onclick="changeStream('{{ url_for('motion_stream') }}')">Motion Detection</button>
+        <button onclick="changeStream('{{ url_for('clahe_stream') }}')">CLAHE</button>
+        <button onclick="changeStream('{{ url_for('equalized_stream') }}')">Histogram Equalization</button>
+        <button onclick="changeStream('{{ url_for('gamma_stream') }}')">Gamma Correction</button>
+        <button onclick="changeStream('{{ url_for('mask_stream') }}')">Mask Only</button>
+        <button onclick="changeStream('{{ url_for('and_stream') }}')">AND Operation</button>
+        <button onclick="changeStream('{{ url_for('or_stream') }}')">OR Operation</button>
+        <button onclick="changeStream('{{ url_for('xor_stream') }}')">XOR Operation</button>
     </div>
 
-    <div style="text-align: center;">
-      <h2>Imagen Original</h2>
-      <img src="{{ url_for('original_stream') }}" style="width: 100%; max-width: 480px;">
+    <div id="video-container">
+        <img id="video" src="" alt="Selecciona un stream para ver" />
     </div>
-
-    <h2>Filtros de Mejora de Iluminación:</h2>
-<ul>
-    <li><a href="{{ url_for('clahe_stream') }}" target="_blank">CLAHE</a></li>
-    <li><a href="{{ url_for('equalized_stream') }}" target="_blank">Ecualización Tradicional</a></li>
-    <li><a href="{{ url_for('gamma_stream') }}" target="_blank">Corrección Gamma</a></li>
-</ul>
-
-
-    <div style="text-align: center;">
-      <h2>Máscara de Movimiento</h2>
-      <img src="{{ url_for('mask_stream') }}" style="width: 100%; max-width: 480px;">
-    </div>
-  </div>
 </body>
-
 </html>
 
