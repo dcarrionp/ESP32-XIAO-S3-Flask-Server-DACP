@@ -1,7 +1,7 @@
 # Author: Diego Andrés Carrión Portilla (Optimized Version)
 # Description: Flask server for ESP32-S3-CAM with motion detection and multiple video streams.
 
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, request
 from io import BytesIO
 import cv2
 import numpy as np
@@ -170,20 +170,16 @@ def stream_xor():
 # ========== FUNCIONES DE RUIDO ==========
 
 def add_gaussian_noise(image, mean=0, std=20):
-    """Agrega ruido gaussiano a una imagen en escala de grises."""
-    if len(image.shape) == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    row, col = image.shape
-    gauss = np.random.normal(mean, std, (row, col)).astype('uint8')
+    """Agrega ruido gaussiano a una imagen a color."""
+    row, col, ch = image.shape
+    gauss = np.random.normal(mean, std, (row, col, ch)).astype('uint8')
     noisy = cv2.add(image, gauss)
     return noisy
 
 def add_speckle_noise(image, var=0.04):
-    """Agrega ruido speckle a una imagen en escala de grises."""
-    if len(image.shape) == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    row, col = image.shape
-    noise = np.random.randn(row, col) * var
+    """Agrega ruido speckle a una imagen a color."""
+    row, col, ch = image.shape
+    noise = np.random.randn(row, col, ch) * var
     noisy = image + image * noise
     noisy = np.clip(noisy, 0, 255).astype('uint8')
     return noisy
@@ -232,30 +228,36 @@ def xor_stream():
 
 @app.route("/gaussian_noise_stream")
 def gaussian_noise_stream():
-    """Streaming con ruido gaussiano agregado."""
+    """Streaming con ruido gaussiano configurable"""
+    mean = int(request.args.get('mean', 0))   # Default 0 si no viene nada
+    std = int(request.args.get('std', 20))     # Default 20 si no viene nada
+
     def generate():
         while True:
             frame = get_frame()
             if frame is None:
                 continue
 
-            noisy_frame = add_gaussian_noise(frame)
+            noisy_frame = add_gaussian_noise(frame, mean, std)
             encoded = encode_frame(noisy_frame)
             if encoded:
                 yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
 
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
+
 @app.route("/speckle_noise_stream")
 def speckle_noise_stream():
-    """Streaming con ruido speckle agregado."""
+    """Streaming con ruido speckle configurable"""
+    var = float(request.args.get('var', 0.04))  # Default 0.04 si no viene nada
+
     def generate():
         while True:
             frame = get_frame()
             if frame is None:
                 continue
 
-            noisy_frame = add_speckle_noise(frame)
+            noisy_frame = add_speckle_noise(frame, var)
             encoded = encode_frame(noisy_frame)
             if encoded:
                 yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')

@@ -44,9 +44,27 @@
         <button class="stream-button" onclick="openStream('/and_stream')">⚙️ Operación AND</button>
         <button class="stream-button" onclick="openStream('/or_stream')">⚡ Operación OR</button>
         <button class="stream-button" onclick="openStream('/xor_stream')">❌ Operación XOR</button>
-        <button class="stream-button" onclick="openStream('/gaussian_noise_stream')">🌫️ Ruido Gaussiano</button>
-        <button class="stream-button" onclick="openStream('/speckle_noise_stream')">🎛️ Ruido Speckle</button>
+        <!--<button class="stream-button" onclick="openStream('/gaussian_noise_stream')">🌫️ Ruido Gaussiano</button>
+        <button class="stream-button" onclick="openStream('/speckle_noise_stream')">🎛️ Ruido Speckle</button>-->
     </div>
+    
+    <h1>Streaming y Control de Ruido</h1>
+
+    <h2>Ruido Gaussiano</h2>
+    <form action="/gaussian_noise_stream" method="get" target="_blank">
+        <label>Media:</label>
+        <input type="number" step="1" name="mean" value="0"><br><br>
+        <label>Desviación Estándar:</label>
+        <input type="number" step="1" name="std" value="20"><br><br>
+        <input type="submit" value="Aplicar Ruido Gaussiano y Abrir Stream">
+    </form>
+
+    <h2>Ruido Speckle</h2>
+    <form action="/speckle_noise_stream" method="get" target="_blank">
+        <label>Varianza:</label>
+        <input type="number" step="0.01" name="var" value="0.04"><br><br>
+        <input type="submit" value="Aplicar Ruido Speckle y Abrir Stream">
+    </form>
 
     <script>
         function openStream(route) {
