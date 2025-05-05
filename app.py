@@ -347,6 +347,45 @@ def compare_filters():
 
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
+@app.route("/edge_comparison")
+def edge_comparison():
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            # Canny sin suavizado
+            edges_canny_no_blur = cv2.Canny(gray, 50, 150)
+
+            # Canny con suavizado
+            blur = cv2.GaussianBlur(gray, (5, 5), 0)
+            edges_canny_blur = cv2.Canny(blur, 50, 150)
+
+            # Sobel sin suavizado
+            sobelx_no_blur = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
+            sobely_no_blur = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+            sobel_no_blur = cv2.magnitude(sobelx_no_blur, sobely_no_blur)
+            sobel_no_blur = np.uint8(np.clip(sobel_no_blur, 0, 255))
+
+            # Sobel con suavizado
+            sobelx_blur = cv2.Sobel(blur, cv2.CV_64F, 1, 0, ksize=5)
+            sobely_blur = cv2.Sobel(blur, cv2.CV_64F, 0, 1, ksize=5)
+            sobel_blur = cv2.magnitude(sobelx_blur, sobely_blur)
+            sobel_blur = np.uint8(np.clip(sobel_blur, 0, 255))
+
+            # Unir las imágenes horizontalmente
+            top_row = np.hstack((edges_canny_no_blur, edges_canny_blur))
+            bottom_row = np.hstack((sobel_no_blur, sobel_blur))
+            combined = np.vstack((top_row, bottom_row))
+
+            encoded = encode_frame(combined)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 
