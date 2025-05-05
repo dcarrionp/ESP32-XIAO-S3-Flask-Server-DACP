@@ -319,6 +319,38 @@ def gaussian_blur_filter():
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
+@app.route("/compare_filters")
+def compare_filters():
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+
+            # Aplicar filtros directamente en COLOR
+            median = cv2.medianBlur(frame, 5)
+            blur = cv2.blur(frame, (5, 5))
+            gaussian = cv2.GaussianBlur(frame, (5, 5), 0)
+
+            # Crear espacio para la imagen combinada
+            h, w, c = frame.shape
+            combined = np.zeros((h, w * 3, c), dtype=np.uint8)
+
+            # Copiar usando slices
+            combined[:, 0:w, :] = median
+            combined[:, w:2*w, :] = blur
+            combined[:, 2*w:3*w, :] = gaussian
+
+            encoded = encode_frame(combined)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+
+
+
 # ========== MAIN ==========
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
