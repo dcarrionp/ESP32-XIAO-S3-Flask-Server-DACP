@@ -1,7 +1,7 @@
 # Author: Diego Andrés Carrión Portilla (Optimized Version)
 # Description: Flask server for ESP32-S3-CAM with motion detection and multiple video streams.
 
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response, request	
 from io import BytesIO
 import cv2
 import numpy as np
@@ -262,6 +262,60 @@ def speckle_noise_stream():
             if encoded:
                 yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
 
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/median_filter")
+def median_filter():
+    ksize = int(request.args.get("ksize", 5))
+    if ksize % 2 == 0:
+        ksize += 1
+
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+            median = cv2.medianBlur(frame, ksize)
+            encoded = encode_frame(median)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/blur_filter")
+def blur_filter():
+    # Lee los parámetros una vez al entrar
+    ksize = int(request.args.get("ksize", 5))
+    if ksize % 2 == 0:
+        ksize += 1  # asegurarse de que sea impar para OpenCV
+
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+            blurred = cv2.blur(frame, (ksize, ksize))
+            encoded = encode_frame(blurred)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/gaussian_filter")
+def gaussian_blur_filter():
+    ksize = int(request.args.get("ksize", 5))
+    if ksize % 2 == 0:
+        ksize += 1
+
+    def generate():
+        while True:
+            frame = get_frame()
+            if frame is None:
+                continue
+            gaussian = cv2.GaussianBlur(frame, (ksize, ksize), 0)
+            encoded = encode_frame(gaussian)
+            if encoded:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
