@@ -1,74 +1,160 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Operaciones Morfológicas en Imágenes Médicas</title>
     <style>
         body {
-            text-align: center;
             font-family: Arial, sans-serif;
+            background-color: #fafafa;
+            text-align: center;
         }
-        .button-group {
-            margin-bottom: 20px;
-        }
-        .button-group button {
+        .btn {
             margin: 10px;
             padding: 10px 20px;
-            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
         }
-        .operation-title {
+        .section-title {
             margin-top: 30px;
-            font-weight: bold;
             font-size: 24px;
+            font-weight: bold;
         }
-        img {
-            margin-bottom: 20px;
-            border: 2px solid #ccc;
-            max-width: 80%;
+        .image-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .image-container {
+            margin: 10px;
+            text-align: center;
+        }
+        .image-container img {
+            max-width: 250px;
             height: auto;
+            border: 2px solid #ccc;
+        }
+        .kernel-size {
+            font-size: 16px;
+            margin-top: 5px;
+            font-style: italic;
+            color: #555;
         }
     </style>
 </head>
 <body>
 
-<h1>Operaciones Morfológicas en Imágenes Médicas</h1>
+    <h1>Operaciones Morfológicas</h1>
 
-<div class="button-group">
-    <button onclick="loadImages('nih')">NIH Chest X-Ray</button>
-    <button onclick="loadImages('pneumonia')">Neumonía X-Ray</button>
-    <button onclick="loadImages('covid')">COVID Radiografía</button>
-</div>
+    <button class="btn" onclick="showImageSet('nih')">Mostrar NIH</button>
+    <button class="btn" onclick="showImageSet('pneumonia')">Mostrar Neumonía</button>
+    <button class="btn" onclick="showImageSet('covid')">Mostrar COVID-19</button>
 
-<div id="images-container">
-    <div class="operation-title">Imagen Original</div>
-    <img id="original" src="" alt="Imagen Original">
+    <div id="images" style="margin-top: 30px;">
+        <!-- Aquí se insertarán las imágenes -->
+    </div>
 
-    <div class="operation-title">Erosión</div>
-    <img id="eroded" src="" alt="Erosión">
+    <script>
+        function showImageSet(imageName) {
+            let html = `
+                <div class="section-title">Imagen: ${imageName.toUpperCase()}</div>
 
-    <div class="operation-title">Dilatación</div>
-    <img id="dilated" src="" alt="Dilatación">
+                <div class="section-title">Imagen Original</div>
+                <div class="image-row">
+                    <div class="image-container">
+                        <img src="/${imageName}/none/37">
+                        <div class="kernel-size">Kernel: 37x37</div>
+                    </div>
+                </div>
 
-    <div class="operation-title">Top Hat</div>
-    <img id="tophat" src="" alt="Top Hat">
+                <div class="section-title">Erosión</div>
+                <div class="image-row">
+                    <div class="image-container">
+                        <img src="/${imageName}/erode/15">
+                        <div class="kernel-size">Kernel: 15x15</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/erode/37">
+                        <div class="kernel-size">Kernel: 37x37</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/erode/51">
+                        <div class="kernel-size">Kernel: 51x51</div>
+                    </div>
+                </div>
 
-    <div class="operation-title">Black Hat</div>
-    <img id="blackhat" src="" alt="Black Hat">
+                <div class="section-title">Dilatación</div>
+                <div class="image-row">
+                    <div class="image-container">
+                        <img src="/${imageName}/dilate/15">
+                        <div class="kernel-size">Kernel: 15x15</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/dilate/37">
+                        <div class="kernel-size">Kernel: 37x37</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/dilate/51">
+                        <div class="kernel-size">Kernel: 51x51</div>
+                    </div>
+                </div>
 
-    <div class="operation-title">Imagen Mejorada (TopHat - BlackHat)</div>
-    <img id="enhanced" src="" alt="Imagen Mejorada">
-</div>
+                <div class="section-title">Top Hat</div>
+                <div class="image-row">
+                    <div class="image-container">
+                        <img src="/${imageName}/tophat/15">
+                        <div class="kernel-size">Kernel: 15x15</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/tophat/37">
+                        <div class="kernel-size">Kernel: 37x37</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/tophat/51">
+                        <div class="kernel-size">Kernel: 51x51</div>
+                    </div>
+                </div>
 
-<script>
-    function loadImages(dataset) {
-        document.getElementById('original').src = `/${dataset}/original`;
-        document.getElementById('eroded').src = `/${dataset}/eroded`;
-        document.getElementById('dilated').src = `/${dataset}/dilated`;
-        document.getElementById('tophat').src = `/${dataset}/tophat`;
-        document.getElementById('blackhat').src = `/${dataset}/blackhat`;
-        document.getElementById('enhanced').src = `/${dataset}/enhanced`;
-    }
-</script>
+                <div class="section-title">Black Hat</div>
+                <div class="image-row">
+                    <div class="image-container">
+                        <img src="/${imageName}/blackhat/15">
+                        <div class="kernel-size">Kernel: 15x15</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/blackhat/37">
+                        <div class="kernel-size">Kernel: 37x37</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/blackhat/51">
+                        <div class="kernel-size">Kernel: 51x51</div>
+                    </div>
+                </div>
+
+                <div class="section-title">Imagen Mejorada (TopHat - BlackHat)</div>
+                <div class="image-row">
+                    <div class="image-container">
+                        <img src="/${imageName}/enhanced/15">
+                        <div class="kernel-size">Kernel: 15x15</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/enhanced/37">
+                        <div class="kernel-size">Kernel: 37x37</div>
+                    </div>
+                    <div class="image-container">
+                        <img src="/${imageName}/enhanced/51">
+                        <div class="kernel-size">Kernel: 51x51</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('images').innerHTML = html;
+        }
+    </script>
 
 </body>
 </html>

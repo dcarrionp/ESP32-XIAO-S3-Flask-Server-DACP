@@ -1,5 +1,5 @@
 # Author: Diego Andrés Carrión Portilla
-# Description: Aplicación Flask para operaciones morfológicas en imágenes médicas.
+# Description: Aplicación Flask para operaciones morfológicas en imágenes médicas con 3 tamaños de máscara
 
 from flask import Flask, render_template, Response
 import cv2
@@ -14,65 +14,54 @@ IMAGES = {
     "covid": "/home/diego/Vision/ESP32-XIAO-S3-Flask-Server-DACP/static/images/imagen3"
 }
 
-KERNEL_SIZE = 37
-KERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (KERNEL_SIZE, KERNEL_SIZE))
+# Tamaños de máscara
+KERNEL_SIZES = [15, 37, 51]
 
 # ========== FUNCIONES ==========
 def load_image(path):
-    """Carga una imagen en escala de grises."""
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise FileNotFoundError(f"No se pudo cargar la imagen: {path}")
     return img
 
 def encode_image(image):
-    """Codifica una imagen para transmitirla como stream."""
     success, buffer = cv2.imencode('.jpg', image)
     return buffer.tobytes() if success else None
 
-def apply_morph_operation(image, operation):
-    """Aplica una operación morfológica."""
-    if operation == "original":
-        return image
-    elif operation == "eroded":
-        return cv2.erode(image, KERNEL, iterations=1)
-    elif operation == "dilated":
-        return cv2.dilate(image, KERNEL, iterations=1)
+def apply_operation(image, operation, kernel_size):
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+    if operation == "erode":
+        return cv2.erode(image, kernel, iterations=1)
+    elif operation == "dilate":
+        return cv2.dilate(image, kernel, iterations=1)
     elif operation == "tophat":
-        return cv2.morphologyEx(image, cv2.MORPH_TOPHAT, KERNEL)
+        return cv2.morphologyEx(image, cv2.MORPH_TOPHAT, kernel)
     elif operation == "blackhat":
-        return cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, KERNEL)
+        return cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, kernel)
     elif operation == "enhanced":
-        tophat = cv2.morphologyEx(image, cv2.MORPH_TOPHAT, KERNEL)
-        blackhat = cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, KERNEL)
+        tophat = cv2.morphologyEx(image, cv2.MORPH_TOPHAT, kernel)
+        blackhat = cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, kernel)
         enhanced = cv2.add(image, cv2.subtract(tophat, blackhat))
         return enhanced
     else:
-        raise ValueError(f"Operación no soportada: {operation}")
+        return image
 
-def generate_stream(image_name, operation):
-    """Genera un stream de la imagen procesada."""
+def generate_stream(image_name, operation, kernel_size):
     img = load_image(IMAGES[image_name])
-    processed_img = apply_morph_operation(img, operation)
-    encoded = encode_image(processed_img)
+    processed = apply_operation(img, operation, kernel_size)
+    encoded = encode_image(processed)
     if encoded:
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
 
-# ========== RUTAS FLASK ==========
-
+# ========== RUTAS ==========
 @app.route("/")
 def index():
     return render_template("index2.html")
 
-@app.route("/<dataset>/<operation>")
-def show_operation(dataset, operation):
-    """Genera el video de la imagen solicitada con la operación seleccionada."""
-    if dataset not in IMAGES:
-        return "Dataset no encontrado", 404
-    try:
-        return Response(generate_stream(dataset, operation), mimetype='multipart/x-mixed-replace; boundary=frame')
-    except ValueError as e:
-        return str(e), 400
+@app.route("/<image_name>/<operation>/<int:kernel_size>")
+def stream_operation(image_name, operation, kernel_size):
+    return Response(generate_stream(image_name, operation, kernel_size),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # ========== MAIN ==========
 if __name__ == "__main__":
