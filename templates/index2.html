@@ -5,54 +5,70 @@
     <title>Operaciones Morfológicas en Imágenes Médicas</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #eef2f3;
-            margin: 20px;
             text-align: center;
+            font-family: Arial, sans-serif;
         }
-        h1 {
-            color: #333;
+        .button-group {
+            margin-bottom: 20px;
         }
-        .button-container {
-            margin-top: 20px;
-        }
-        button {
+        .button-group button {
             margin: 10px;
-            padding: 15px 25px;
+            padding: 10px 20px;
             font-size: 16px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #45a049;
+        .operation-title {
+            margin-top: 30px;
+            font-weight: bold;
+            font-size: 24px;
+        }
+        img {
+            margin-bottom: 20px;
+            border: 2px solid #ccc;
+            max-width: 80%;
+            height: auto;
         }
     </style>
 </head>
 <body>
 
-    <h1>Operaciones Morfológicas en Imágenes Médicas</h1>
+<h1>Operaciones Morfológicas en Imágenes Médicas</h1>
 
-    <div class="button-container">
-        <h2>Imagen NIH ChestXray14</h2>
-        <button onclick="window.open('/nih_original', '_blank')">Ver Original</button>
-        <button onclick="window.open('/nih_eroded', '_blank')">Ver Erosión</button>
-    </div>
+<div class="button-group">
+    <button onclick="loadImages('nih')">NIH Chest X-Ray</button>
+    <button onclick="loadImages('pneumonia')">Neumonía X-Ray</button>
+    <button onclick="loadImages('covid')">COVID Radiografía</button>
+</div>
 
-    <div class="button-container">
-        <h2>Imagen Pneumonia ChestXray</h2>
-        <button onclick="window.open('/pneumonia_original', '_blank')">Ver Original</button>
-        <button onclick="window.open('/pneumonia_eroded', '_blank')">Ver Erosión</button>
-    </div>
+<div id="images-container">
+    <div class="operation-title">Imagen Original</div>
+    <img id="original" src="" alt="Imagen Original">
 
-    <div class="button-container">
-        <h2>Imagen COVID-19 Radiography</h2>
-        <button onclick="window.open('/covid_original', '_blank')">Ver Original</button>
-        <button onclick="window.open('/covid_eroded', '_blank')">Ver Erosión</button>
-    </div>
+    <div class="operation-title">Erosión</div>
+    <img id="eroded" src="" alt="Erosión">
+
+    <div class="operation-title">Dilatación</div>
+    <img id="dilated" src="" alt="Dilatación">
+
+    <div class="operation-title">Top Hat</div>
+    <img id="tophat" src="" alt="Top Hat">
+
+    <div class="operation-title">Black Hat</div>
+    <img id="blackhat" src="" alt="Black Hat">
+
+    <div class="operation-title">Imagen Mejorada (TopHat - BlackHat)</div>
+    <img id="enhanced" src="" alt="Imagen Mejorada">
+</div>
+
+<script>
+    function loadImages(dataset) {
+        document.getElementById('original').src = `/${dataset}/original`;
+        document.getElementById('eroded').src = `/${dataset}/eroded`;
+        document.getElementById('dilated').src = `/${dataset}/dilated`;
+        document.getElementById('tophat').src = `/${dataset}/tophat`;
+        document.getElementById('blackhat').src = `/${dataset}/blackhat`;
+        document.getElementById('enhanced').src = `/${dataset}/enhanced`;
+    }
+</script>
 
 </body>
 </html>
